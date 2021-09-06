@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +7,7 @@ import java.util.Scanner;
 public class Main {
 
     final static BigDecimal MOD_97 = BigDecimal.valueOf(97);
+    final static Integer MIN_IBAN_LENGTH = 15;
     final static Integer MAX_IBAN_LENGTH = 34;
 
     public static void main(String[] args) {
@@ -24,7 +26,9 @@ public class Main {
                 System.out.println("Please enter IBAN");
                 String iban = scanner.next().toUpperCase();
 
-                if (isIbanValid(iban)) {
+                if (!isCorrectLength(iban)) {
+                    System.out.println("Iban length should be between 15 and 34, Iban is invalid");
+                } else if (isIbanValid(iban)) {
                     System.out.println("IBAN " + iban + " is valid");
                 } else {
                     System.out.println("IBAN " + iban + " is invalid");
@@ -43,30 +47,33 @@ public class Main {
     }
 
     private static void validateIbanFromFile(String path) {
-        List<String> data = IOUtils.readFileIntoList(path);
-        List<String> validatedData = new ArrayList<>();
-        boolean isIbanValid;
+        List<String> data = null;
+        try {
+            data = IOUtils.readFileIntoList(path);
+            List<String> validatedData = new ArrayList<>();
+            boolean isIbanValid;
 
-        for (int i = 0; i < data.size(); i++) {
-            isIbanValid = isIbanValid(data.get(i));
-            validatedData.add(data.get(i) + ";" + Boolean.toString(isIbanValid));
+            for (int i = 0; i < data.size(); i++) {
+                isIbanValid = isIbanValid(data.get(i));
+                validatedData.add(data.get(i) + ";" + Boolean.toString(isIbanValid));
+            }
+
+            String fileName = path.replace(".txt", ".out.txt");
+            IOUtils.saveDataIntoFile(fileName, validatedData);
+            System.out.println("Please see result: " + fileName);
+        } catch (IOException e) {
+            System.out.println("Can not find file: " + path);
         }
-
-        String fileName = path.replace(".", ".out.");
-        IOUtils.saveDataIntoFile(fileName, validatedData);
-        System.out.println("Please see result: " + fileName);
     }
 
     public static boolean isIbanValid(String iban) {
-
-        return isCorrectLength(iban)
-                && isCorrectCountryCode(iban)
+        return isCorrectCountryCode(iban)
                 && isTwoDigits(iban)
                 && isRemainderEquals1(iban);
     }
 
     public static boolean isCorrectLength(String iban) {
-        return iban.length() <= MAX_IBAN_LENGTH;
+        return iban.length() <= MAX_IBAN_LENGTH && iban.length() > MIN_IBAN_LENGTH;
     }
 
     public static boolean isCorrectCountryCode(String iban) {
@@ -75,14 +82,12 @@ public class Main {
 
     public static boolean isTwoDigits(String iban) {
         String ibanDigits = iban.substring(2, 4);
-
         return ibanDigits.matches("\\d+");
     }
 
     public static boolean isRemainderEquals1(String iban) {
         String rearrangedIban = iban.substring(4) + iban.substring(0, 4);
         BigDecimal ibanAsInteger = convertIbanToInteger(rearrangedIban);
-
         return ibanAsInteger.divideAndRemainder(MOD_97)[1].equals(BigDecimal.valueOf(1));
     }
 
@@ -93,7 +98,6 @@ public class Main {
                 iban = iban.replace(String.valueOf(digit), Integer.toString((int) digit - 55));
             }
         }
-
         return new BigDecimal(iban);
     }
 }
